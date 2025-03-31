@@ -62,34 +62,51 @@
     const fileInput = document.getElementById('fileInput');
     const tableContainer = document.getElementById('tableContainer');
 
-    fileInput.addEventListener('change', async () => {
+   fileInput.addEventListener('change', async () => {
   const file = fileInput.files[0];
   const formData = new FormData();
   formData.append('file', file);
 
-  try {
-    const res = await fetch('/upload', { method: 'POST', body: formData });
-    const data = await res.json();
+  const response = await fetch('/upload', {
+    method: 'POST',
+    body: formData
+  });
 
-    let html = '<table><thead><tr>' +
-      '<th>Código de Barras</th><th>Nombre del Producto</th><th>Disponibilidad</th><th>Link</th>' +
-      '</tr></thead><tbody>';
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  const tbody = document.querySelector('#preview-table tbody');
 
-    data.forEach(producto => {
-      html += `<tr>
-        <td>${producto.codigo_barras}</td>
-        <td>${producto.nombre_producto}</td>
-        <td>${producto.disponibilidad}</td>
-        <td><a href="${producto.enlace}" target="_blank">🔗</a></td>
-      </tr>`;
-    });
+  let buffer = '';
 
-    html += '</tbody></table>';
-    tableContainer.innerHTML = html;
-  } catch (err) {
-    tableContainer.innerHTML = '<p style="color:red">❌ Error procesando archivo</p>';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (line.startsWith('data:')) {
+        const jsonStr = line.replace('data: ', '').trim();
+        try {
+          const producto = JSON.parse(jsonStr);
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${producto.codigo_barras}</td>
+            <td>${producto.nombre_producto}</td>
+            <td>${producto.disponibilidad}</td>
+            <td><a href="${producto.enlace}" target="_blank">🔗</a></td>
+          `;
+          tbody.appendChild(row);
+        } catch (err) {
+          console.error('❌ Error parseando línea:', jsonStr, err);
+        }
+      }
+    }
   }
 });
+
 
   </script>
 </body>
