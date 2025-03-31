@@ -11,8 +11,11 @@
       background-color: #f5f5f5;
       padding: 2rem;
     }
+    #tableContainer {
+      overflow-x: auto;
+    }
     table {
-      width: 100%;
+      min-width: 900px;
       border-collapse: collapse;
       margin-top: 1rem;
       background: white;
@@ -60,9 +63,14 @@
         html += '<th>Código de Barras</th><th>Nombre del Producto</th><th>Disponibilidad Web 1</th><th>Precio Web 1</th><th>Link Web 1</th>';
         html += '</tr></thead><tbody>';
 
-        productos.forEach(item => {
-          const codigo = item["Código de Barras"] || item["Codigo de Barras"] || "-";
-          const nombre = item["Nombre del Producto"] || item["Nombre"] || "-";
+        productos.forEach((item, index) => {
+          const keys = Object.keys(item);
+          const codigoKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'códigodebarras' || k.toLowerCase().replace(/\s+/g, '') === 'codigodebarras');
+          const nombreKey = keys.find(k => k.toLowerCase().includes('nombre'));
+
+          const codigo = item[codigoKey] ?? "-";
+          const nombre = item[nombreKey] ?? "-";
+
           html += `<tr>
                       <td>${codigo}</td>
                       <td>${nombre}</td>
@@ -76,6 +84,7 @@
         tableContainer.innerHTML = html;
 
       } catch (e) {
+        console.error(e);
         tableContainer.innerHTML = '<p style="color:red">❌ Error procesando archivo</p>';
       }
     });
