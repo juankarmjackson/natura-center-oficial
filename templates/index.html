@@ -5,15 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gestor de Productos</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      padding: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
 </head>
 <body>
   <h2>Subida de archivo</h2>
   <input type="file" id="fileInput" />
-  <pre id="output"></pre>
+  <div id="tableContainer"></div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
-    const output = document.getElementById('output');
+    const tableContainer = document.getElementById('tableContainer');
 
     fileInput.addEventListener('change', async () => {
       const file = fileInput.files[0];
@@ -23,9 +49,34 @@
       try {
         const res = await fetch('/upload', { method: 'POST', body: formData });
         const data = await res.json();
-        output.textContent = JSON.stringify(data, null, 2);
+        const productos = data.preview || [];
+
+        if (productos.length === 0) {
+          tableContainer.innerHTML = '<p>No hay datos para mostrar.</p>';
+          return;
+        }
+
+        let html = '<table><thead><tr>';
+        html += '<th>Código de Barras</th><th>Nombre del Producto</th><th>Disponibilidad Web 1</th><th>Precio Web 1</th><th>Link Web 1</th>';
+        html += '</tr></thead><tbody>';
+
+        productos.forEach(item => {
+          const codigo = item["Código de Barras"] || item["Codigo de Barras"] || "-";
+          const nombre = item["Nombre del Producto"] || item["Nombre"] || "-";
+          html += `<tr>
+                      <td>${codigo}</td>
+                      <td>${nombre}</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td><a href="#">🔗</a></td>
+                    </tr>`;
+        });
+
+        html += '</tbody></table>';
+        tableContainer.innerHTML = html;
+
       } catch (e) {
-        output.textContent = '❌ Error procesando archivo';
+        tableContainer.innerHTML = '<p style="color:red">❌ Error procesando archivo</p>';
       }
     });
   </script>
