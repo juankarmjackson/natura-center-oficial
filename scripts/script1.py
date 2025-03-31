@@ -56,6 +56,7 @@ def ejecutar_scraping_dieteticavallecana(csv_path):
 
         if resultado:
             resultados.append(resultado)
+            print(json.dumps(resultado), flush=True)  # 👈 envía JSON por stdout en tiempo real
 
         time.sleep(2)
 
