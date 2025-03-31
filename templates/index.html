@@ -50,49 +50,34 @@
     const tableContainer = document.getElementById('tableContainer');
 
     fileInput.addEventListener('change', async () => {
-      const file = fileInput.files[0];
-      const formData = new FormData();
-      formData.append('file', file);
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
 
-      try {
-        const res = await fetch('/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        const productos = data.preview || [];
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: formData });
+    const data = await res.json();
 
-        if (productos.length === 0) {
-          tableContainer.innerHTML = '<p>No hay datos para mostrar.</p>';
-          return;
-        }
+    let html = '<table><thead><tr>' +
+      '<th>Código de Barras</th><th>Nombre del Producto</th><th>Disponibilidad</th><th>Link</th>' +
+      '</tr></thead><tbody>';
 
-        let html = '<table><thead><tr>';
-        html += '<th>Código de Barras</th><th>Nombre del Producto</th><th>Disponibilidad Web 1</th><th>Precio Web 1</th><th>Link Web 1</th>';
-        html += '</tr></thead><tbody>';
-
-        productos.forEach((item, index) => {
-          const keys = Object.keys(item);
-          const codigoKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'códigodebarras' || k.toLowerCase().replace(/\s+/g, '') === 'codigodebarras');
-          const nombreKey = keys.find(k => k.toLowerCase().includes('nombre'));
-
-          const codigo = item[codigoKey] ?? "-";
-          const nombre = item[nombreKey] ?? "-";
-
-          html += `<tr>
-                      <td>${codigo}</td>
-                      <td>${nombre}</td>
-                      <td>-</td>
-                      <td>-</td>
-                      <td><a href="#">🔗</a></td>
-                    </tr>`;
-        });
-
-        html += '</tbody></table>';
-        tableContainer.innerHTML = html;
-
-      } catch (e) {
-        console.error(e);
-        tableContainer.innerHTML = '<p style="color:red">❌ Error procesando archivo</p>';
-      }
+    data.forEach(producto => {
+      html += `<tr>
+        <td>${producto.codigo_barras}</td>
+        <td>${producto.nombre_producto}</td>
+        <td>${producto.disponibilidad}</td>
+        <td><a href="${producto.enlace}" target="_blank">🔗</a></td>
+      </tr>`;
     });
+
+    html += '</tbody></table>';
+    tableContainer.innerHTML = html;
+  } catch (err) {
+    tableContainer.innerHTML = '<p style="color:red">❌ Error procesando archivo</p>';
+  }
+});
+
   </script>
 </body>
 </html>
