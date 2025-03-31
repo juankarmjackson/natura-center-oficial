@@ -24,18 +24,20 @@ def upload_file():
     file.save(filepath)
 
     def generate():
-        process = subprocess.Popen(
-            ['python', 'scripts/script1.py', filepath],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            universal_newlines=True,
-            bufsize=1
-        )
-        for line in iter(process.stdout.readline, ''):
-            if line.strip():
-                yield f"data: {line.strip()}\n\n"
-        process.stdout.close()
-        process.wait()
+        # Ejecutar script1.py y luego script2.py
+        for script in ['scripts/script1.py', 'scripts/script2.py']:
+            process = subprocess.Popen(
+                ['python', script, filepath],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                bufsize=1
+            )
+            for line in iter(process.stdout.readline, ''):
+                if line.strip():
+                    yield f"data: {line.strip()}\n\n"
+            process.stdout.close()
+            process.wait()
 
     return Response(generate(), mimetype='text/event-stream')
 
