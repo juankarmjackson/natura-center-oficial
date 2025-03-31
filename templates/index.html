@@ -123,6 +123,58 @@
 });
 
 
+    const tabla2Body = document.querySelector('#tabla2 tbody');
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/upload', {
+    method: 'POST',
+    body: formData
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (line.startsWith('data:')) {
+        const jsonStr = line.replace('data: ', '').trim();
+        try {
+          const producto = JSON.parse(jsonStr);
+
+          // 🟢 Insertar solo los de Feliu Badaló en tabla2
+          if (producto.web === "feliubadalo") {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${producto.codigo_barras}</td>
+              <td>${producto.nombre_producto}</td>
+              <td>${producto.disponibilidad}</td>
+              <td><a href="${producto.enlace}" target="_blank">🔗</a></td>
+            `;
+            tabla2Body.appendChild(row);
+          }
+
+        } catch (err) {
+          console.error('❌ Error procesando JSON:', jsonStr);
+        }
+      }
+    }
+  }
+});
+
+
+
   </script>
 </body>
 </html>
