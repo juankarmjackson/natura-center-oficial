@@ -7,6 +7,9 @@ import requests
 from bs4 import BeautifulSoup
 
 
+UPLOAD_FOLDER = "uploads"
+
+
 def buscar_producto_dieteticavallecana(row_id, codigo_barras, nombre_producto):
     url_busqueda = f"https://www.dieteticavallecana.com/busqueda?controller=search&s={codigo_barras}"
     headers = {
@@ -56,11 +59,16 @@ def ejecutar_scraping_dieteticavallecana(csv_path):
 
         if resultado:
             resultados.append(resultado)
-            print(json.dumps(resultado), flush=True)  # 👈 envía JSON por stdout en tiempo real
+            print(json.dumps(resultado), flush=True)
 
-        time.sleep(2)
+        time.sleep(4)  # Aumentado a 4 segundos para prevenir bloqueos
 
-    resultados_path = "uploads/resultados_dieteticavallecana.json"
+        # Reinicio simulado cada 50 productos para liberar recursos (simulado para requests)
+        if (index + 1) % 50 == 0:
+            print("♻️ Simulando reinicio de sesión o limpieza de recursos...")
+            time.sleep(2)
+
+    resultados_path = os.path.join(UPLOAD_FOLDER, "resultados_dieteticavallecana.json")
     with open(resultados_path, "w", encoding="utf-8") as f:
         json.dump(resultados, f, indent=2, ensure_ascii=False)
 
