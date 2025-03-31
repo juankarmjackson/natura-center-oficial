@@ -12,6 +12,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 UPLOAD_FOLDER = "uploads"
 
+
 def buscar_producto(driver, row_id, codigo_barras, nombre_producto):
     url = f"https://online.feliubadalo.com/catalogsearch/result/?q={codigo_barras}#/dfclassic/query={codigo_barras}"
     print(f"🔍 Buscando: {nombre_producto} ({codigo_barras})")
@@ -41,6 +42,7 @@ def buscar_producto(driver, row_id, codigo_barras, nombre_producto):
     print(json.dumps(resultado), flush=True)
     return resultado
 
+
 def ejecutar_scraping_feliubadalo(csv_path):
     print("🚀 Ejecutando búsqueda en Feliu Badaló...")
 
@@ -53,7 +55,7 @@ def ejecutar_scraping_feliubadalo(csv_path):
     resultados = []
 
     options = Options()
-    options.add_argument("--headless")
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
@@ -62,15 +64,21 @@ def ejecutar_scraping_feliubadalo(csv_path):
     try:
         for index, row in df.iterrows():
             row_id = index + 2
-            codigo = str(row.get("Código de Barras", "")).strip()
-            nombre = str(row.get("Nombre del Producto", "")).strip()
+            codigo = str(row.get("Código de Barras") or row.get("Código de barras") or "").strip()
+            nombre = str(row.get("Nombre del Producto") or row.get("Nombre") or "").strip()
 
             if not codigo or not nombre:
                 continue
 
+            # Reiniciar el navegador cada 50 productos para liberar recursos
+            if index != 0 and index % 50 == 0:
+                driver.quit()
+                time.sleep(3)
+                driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
             resultado = buscar_producto(driver, row_id, codigo, nombre)
             resultados.append(resultado)
-            time.sleep(2)
+            time.sleep(4)  # Delay más largo para evitar bloqueo
 
     finally:
         driver.quit()
@@ -82,6 +90,7 @@ def ejecutar_scraping_feliubadalo(csv_path):
         json.dump(resultados, f, indent=2, ensure_ascii=False)
 
     print(f"📁 Resultados guardados en {resultados_path}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
