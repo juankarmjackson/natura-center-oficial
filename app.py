@@ -1,7 +1,6 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, render_template
 import os
 import subprocess
-import json
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -14,30 +13,25 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    file = request.files['file']
-    if not file:
-        return jsonify({"error": "No se proporcionó archivo"}), 400
+    try:
+        file = request.files['file']
+        if not file:
+            return "No se proporcionó archivo", 400
 
-    # Guardar archivo
-    filename = file.filename
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
+        filename = file.filename
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
 
-    # Ejecutar script1.py con el archivo
-    subprocess.call(['python', 'script1.py', filepath])
+        print(f"📁 Archivo guardado en: {filepath}")
 
-    # Leer el JSON generado
-    resultados_path = os.path.join(UPLOAD_FOLDER, "resultados_dieteticavallecana.json")
-    if os.path.exists(resultados_path):
-        with open(resultados_path, encoding='utf-8') as f:
-            resultados = json.load(f)
-        return jsonify(resultados)
-    else:
-        return jsonify({"error": "No se generó el archivo de resultados"}), 500
+        # Ejecutar script1.py
+        subprocess.call(['python', 'script1.py', filepath])
 
-@app.route('/uploads/<path:filename>')
-def download_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+        return 'OK', 200
+
+    except Exception as e:
+        print(f"❌ Error al subir archivo: {e}")
+        return str(e), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
