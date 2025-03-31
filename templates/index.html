@@ -4,30 +4,288 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gestor de Productos</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Raleway', sans-serif;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f9f9f9;
+      margin: 0;
+      padding: 2rem;
+      color: #333;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .upload-section, .panel {
+      max-width: 900px;
+      margin: auto;
+      text-align: center;
+    }
+
+    .file-input {
+      margin-bottom: 1rem;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .custom-file-upload {
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      cursor: pointer;
+      background-color: #008cba;
+      color: white;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+
+    .custom-file-upload:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn {
+      padding: 0.5rem 1.5rem;
+      border: none;
+      border-radius: 5px;
+      margin: 10px 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-start {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .btn-stop {
+      background-color: #dc3545;
+      color: white;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(20px);
+      transition: all 0.5s ease;
+    }
+
+    .btn-stop.show {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateX(0);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: white;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .card h3 {
+      margin: 0.5rem 0;
+    }
+
+    .buy-btn {
+      background-color: #17a2b8;
+      color: white;
+      margin-top: 0.5rem;
+    }
+
+    .global-actions {
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    table {
+      margin-top: 2rem;
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f1f1f1;
+    }
+
+    #preview-wrapper {
+    max-height: 800px;
+    max-width: 1000px;
+    overflow: auto;
+    margin: 2rem auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    padding: 1rem;
+  }
+
+  #preview-table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+  }
+
+  #preview-table th, #preview-table td {
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  #preview-table th {
+    background-color: #f1f1f1;
+    font-weight: 600;
+  }
+
+  #preview-table tr:hover {
+    background-color: #f9f9f9;
+  }
+  </style>
 </head>
 <body>
-  <h2>Subida de archivo</h2>
-  <input type="file" id="fileInput" />
-  <pre id="output"></pre>
 
+  <div class="panel">
+    <h2>Panel de productos</h2>
+    <div id="preview-wrapper">
+        <table id="preview-table"></table>
+      </div>
+      
+  </div>
+
+  <div class="upload-section">
+    <h2>Subir archivo de productos</h2>
+    <label class="custom-file-upload" id="uploadLabel">
+      <input type="file" id="fileInput" accept=".csv, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
+      Seleccionar archivo
+    </label>
+    <button class="btn btn-stop" id="stopBtn">Parar proceso</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Faliu Badaló</h3>
+      <p>0 Productos disponibles</p>
+      <button class="btn buy-btn">➕ Añadir al carrito</button>
+      <button class="btn">🛒 Comprar todo el carrito</button>
+    </div>
+    <div class="card">
+      <h3>Roan Logistic</h3>
+      <p>0 Productos disponibles</p>
+      <button class="btn buy-btn">➕ Añadir al carrito</button>
+      <button class="btn">🛒 Comprar todo el carrito</button>
+    </div>
+    <div class="card">
+      <h3>Actibios</h3>
+      <p>0 Productos disponibles</p>
+      <button class="btn buy-btn">➕ Añadir al carrito</button>
+      <button class="btn">🛒 Comprar todo el carrito</button>
+    </div>
+    <div class="card">
+      <h3>Dietética Vallecana</h3>
+      <p>10 Productos disponibles</p>
+      <button class="btn buy-btn">➕ Añadir al carrito</button>
+      <button class="btn">🛒 Comprar todo el carrito</button>
+    </div>
+  </div>
+
+  <div class="global-actions">
+    <button class="btn btn-start">💰 Comprar el óptimo en Precio de todos</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     const fileInput = document.getElementById('fileInput');
-    const output = document.getElementById('output');
+    const uploadLabel = document.getElementById('uploadLabel');
+    const stopBtn = document.getElementById('stopBtn');
+    const table = document.getElementById('preview-table');
 
-    fileInput.addEventListener('change', async () => {
-      const file = fileInput.files[0];
-      const formData = new FormData();
-      formData.append('file', file);
+    fileInput.addEventListener('change', async function () {
+  const file = fileInput.files[0];
+  if (!file) return;
 
-      try {
-        const res = await fetch('/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        output.textContent = JSON.stringify(data, null, 2);
-      } catch (e) {
-        output.textContent = '❌ Error procesando archivo';
-      }
+  const formData = new FormData();
+  formData.append("file", file);
+
+  fileInput.disabled = true;
+  stopBtn.classList.add('show');
+
+  try {
+    const response = await fetch("/upload", {
+      method: "POST",
+      body: formData
     });
+
+    const result = await response.json();
+    console.log("✅ Procesado:", result);
+
+    alert("📦 Proceso completado. Ver consola para más detalles.");
+  } catch (err) {
+    console.error("❌ Error al subir:", err);
+    alert("❌ Error al subir archivo.");
+  }
+});
+
+
+   
+    function toHTMLTable(workbook) {
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+  if (jsonData.length === 0) return '';
+
+  const headerRow = jsonData[0];
+  const codeIndex = headerRow.findIndex(h => h.toLowerCase().includes("código de barras"));
+  const nameIndex = headerRow.findIndex(h => h.toLowerCase().includes("nombre"));
+
+  if (codeIndex === -1 || nameIndex === -1) {
+    return '<thead><tr><th>Error</th></tr></thead><tbody><tr><td>No se encontraron las columnas requeridas.</td></tr></tbody>';
+  }
+
+  let html = '<thead><tr>';
+  html += `<th>${headerRow[codeIndex]}</th><th>${headerRow[nameIndex]}</th>`;
+  const suppliers = ['Faliu Badaló', 'Roan Logistic', 'Actibios', 'Dietética Vallecana'];
+  suppliers.forEach(supplier => {
+    html += `<th>${supplier}</th><th>Precio</th><th>Link</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  for (let i = 1; i < jsonData.length; i++) {
+    const row = jsonData[i];
+    const code = row[codeIndex] ?? '';
+    const name = row[nameIndex] ?? '';
+
+    html += `<tr><td>${code}</td><td>${name}</td>`;
+
+    suppliers.forEach(() => {
+      html += `<td>-</td><td>-</td><td><a href="#">🔗</a></td>`;
+    });
+
+    html += '</tr>';
+  }
+
+  html += '</tbody>';
+  return html;
+}
+
   </script>
 </body>
 </html>
