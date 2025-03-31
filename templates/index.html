@@ -13,13 +13,15 @@
     }
     #tableContainer {
       overflow-x: auto;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      background: white;
     }
     table {
-      min-width: 900px;
+      min-width: 1000px;
       border-collapse: collapse;
-      margin-top: 1rem;
-      background: white;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 100%;
     }
     th, td {
       padding: 12px 15px;
@@ -29,6 +31,9 @@
     th {
       background-color: #007bff;
       color: white;
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
     tr:nth-child(even) {
       background-color: #f9f9f9;
