@@ -6,8 +6,6 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-from contador import actualizar_contador
-
 
 def buscar_producto_dieteticavallecana(row_id, codigo_barras, nombre_producto):
     url_busqueda = f"https://www.dieteticavallecana.com/busqueda?controller=search&s={codigo_barras}"
@@ -57,9 +55,6 @@ def ejecutar_scraping_dieteticavallecana(csv_path):
         resultado = buscar_producto_dieteticavallecana(row_id, codigo_barras, nombre_producto)
 
         if resultado:
-            if resultado["disponibilidad"] == "Disponible":
-                actualizar_contador("dieteticavallecana")
-
             resultados.append(resultado)
 
         time.sleep(2)
@@ -69,12 +64,6 @@ def ejecutar_scraping_dieteticavallecana(csv_path):
         json.dump(resultados, f, indent=2, ensure_ascii=False)
 
     print(f"✅ Búsqueda completada. Resultados guardados en '{resultados_path}'")
-
-    try:
-        with open("uploads/counters.json") as f:
-            print("🔢 Contadores actuales:", json.load(f))
-    except:
-        print("⚠️ No se pudo leer counters.json")
 
 
 if __name__ == "__main__":
