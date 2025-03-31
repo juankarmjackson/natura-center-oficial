@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, jsonify
-from werkzeug.utils import secure_filename
+from flask import Flask, request, jsonify, send_file
 import os
-import pandas as pd
+import subprocess
+import json
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -13,23 +13,26 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+    if not file:
+        return jsonify({"error": "No se proporcionó archivo"}), 400
 
-    filename = secure_filename(file.filename)
+    filename = file.filename
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
 
-    try:
-        df = pd.read_csv(filepath) if filename.endswith('.csv') else pd.read_excel(filepath)
-        result = df.head().to_dict(orient='records')
-        return jsonify({'preview': result}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    # Ejecutar script1.py con el archivo
+    subprocess.call(['python', 'script1.py', filepath])
+
+    # Cargar el JSON de resultados y devolverlo al frontend
+    resultados_path = os.path.join(UPLOAD_FOLDER, "resultados_dieteticavallecana.json")
+    if os.path.exists(resultados_path):
+        with open(resultados_path, encoding='utf-8') as f:
+            resultados = json.load(f)
+        return jsonify(resultados)
+    else:
+        return jsonify({"error": "No se generó el archivo de resultados"}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
