@@ -25,7 +25,7 @@ def upload_file():
         print(f"📁 Archivo guardado en: {filepath}")
 
         # Ejecutar script1.py
-        subprocess.call(['python', 'script1.py', filepath])
+        subprocess.call(['python', 'scripts/script1.py', filepath])
 
         return 'OK', 200
 
