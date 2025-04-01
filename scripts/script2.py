@@ -2,75 +2,75 @@ import pandas as pd
 import time
 import json
 import os
-import random
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.common.exceptions import WebDriverException
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 UPLOAD_FOLDER = "uploads"
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0"
-]
+def login(driver):
+    print("🔐 Iniciando sesión en Feliu Badaló...")
+    driver.get("https://online.feliubadalo.com/customer/account/login/")
 
-def crear_driver(user_agent):
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument(f"user-agent={user_agent}")
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
-def buscar_producto(driver, row_id, codigo_barras, nombre_producto):
-    url = f"https://online.feliubadalo.com/catalogsearch/result/?q={codigo_barras}#/dfclassic/query={codigo_barras}"
-    print(f"🔍 Buscando: {nombre_producto} ({codigo_barras})")
-
+    # Aceptar cookies si aparece
     try:
-        driver.get(url)
-        time.sleep(4)
+        WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.ID, "CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll"))
+        ).click()
+        print("🍪 Cookies aceptadas")
+    except:
+        print("👌 No apareció el banner de cookies")
 
-        if driver.find_elements(By.CLASS_NAME, "df-no-results"):
-            disponibilidad = "No disponible"
-        elif driver.find_elements(By.CLASS_NAME, "df-card"):
-            disponibilidad = "Disponible"
-        else:
-            disponibilidad = "No disponible"
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "email")))
+    driver.find_element(By.ID, "email").send_keys("majadahonda@naturacenter.es")
+    driver.find_element(By.ID, "pass").send_keys("NaturaH6")
+    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "send2"))).click()
 
-        print(f"✅ {disponibilidad}")
-        return {
-            "row_id": row_id,
-            "codigo_barras": codigo_barras,
-            "nombre_producto": nombre_producto,
-            "enlace": url,
-            "disponibilidad": disponibilidad,
-            "web": "feliubadalo"
-        }
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, ".customer-welcome, .action.logout"))
+    )
+    print("✅ Login correcto")
+
+def buscar_y_añadir(driver, codigo_barras):
+    try:
+        # Buscar el producto
+        search_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "search"))
+        )
+        search_input.clear()
+        search_input.send_keys(codigo_barras)
+        search_input.send_keys(Keys.ENTER)
+
+        # Esperar resultados
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "a.df-card__main"))
+        )
+
+        # Añadir al carrito
+        WebDriverWait(driver, 5).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "button.df-add-to-cart-btn"))
+        ).click()
+
+        print(f"🛒 Añadido al carrito: {codigo_barras}")
+        return True
 
     except Exception as e:
-        print(f"❌ Error procesando {codigo_barras}: {str(e)}", flush=True)
-        return {
-            "row_id": row_id,
-            "codigo_barras": codigo_barras,
-            "nombre_producto": nombre_producto,
-            "enlace": url,
-            "disponibilidad": "Error",
-            "web": "feliubadalo"
-        }
+        print(f"❌ No añadido: {codigo_barras} | {e}")
+        return False
 
-def ejecutar_scraping_feliubadalo():
-    print("🚀 Ejecutando scraping en Feliu Badaló...")
+def ejecutar_carrito_feliubadalo():
+    print("🛒 Iniciando scriptcarrito2.py con el archivo original del usuario...")
 
+    # Obtener el último CSV subido
     archivos_csv = [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith(".csv")]
     if not archivos_csv:
-        print("❌ No hay archivos CSV en uploads/")
+        print("⚠️ No hay archivo CSV subido")
         return
 
+    # Usar el más reciente
     archivos_csv.sort(key=lambda f: os.path.getmtime(os.path.join(UPLOAD_FOLDER, f)), reverse=True)
     csv_path = os.path.join(UPLOAD_FOLDER, archivos_csv[0])
     print(f"📄 Usando archivo: {csv_path}")
@@ -81,44 +81,58 @@ def ejecutar_scraping_feliubadalo():
         print(f"❌ Error leyendo CSV: {e}")
         return
 
-    resultados = []
-    user_agent = random.choice(USER_AGENTS)
-    driver = crear_driver(user_agent)
+    if "Código de Barras" not in df.columns:
+        print("⚠️ El archivo no tiene columna 'Código de Barras'")
+        return
+
+    codigos = df["Código de Barras"].dropna().astype(str).tolist()
+    if not codigos:
+        print("⚠️ No hay códigos válidos en el CSV")
+        return
+
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(options=options)
+    añadidos = 0
 
     try:
-        for index, row in df.iterrows():
-            row_id = index + 2
-            codigo = str(row.get("Código de Barras", "")).strip()
-            nombre = str(row.get("Nombre del Producto", "")).strip()
+        login(driver)
 
-            if not codigo or not nombre:
-                continue
+        for codigo in codigos:
+            if buscar_y_añadir(driver, codigo.strip()):
+                añadidos += 1
+            time.sleep(2)
 
-            if index > 0 and index % 50 == 0:
-                driver.quit()
-                user_agent = random.choice(USER_AGENTS)
-                print(f"♻️ Reiniciando navegador con nuevo user-agent: {user_agent}")
-                time.sleep(2)
-                driver = crear_driver(user_agent)
+        print(f"✅ Añadidos al carrito: {añadidos}")
 
-            try:
-                resultado = buscar_producto(driver, row_id, codigo, nombre)
-                if resultado:
-                    resultados.append(resultado)
-                    print(json.dumps(resultado), flush=True)
-            except Exception as e:
-                print(f"❌ Error general en fila {row_id}: {e}", flush=True)
-
-            time.sleep(4)
+    except Exception as e:
+        print(f"❌ Error general: {e}")
 
     finally:
         driver.quit()
+        print("👋 Selenium finalizado")
 
-    resultados_path = os.path.join(UPLOAD_FOLDER, "resultados_feliubadalo.json")
-    with open(resultados_path, "w", encoding="utf-8") as f:
-        json.dump(resultados, f, indent=2, ensure_ascii=False)
+        # ✅ Actualizar contador en counters.json
+        try:
+            counters_path = os.path.join(UPLOAD_FOLDER, "counters.json")
+            if os.path.exists(counters_path):
+                with open(counters_path, "r", encoding="utf-8") as f:
+                    counters = json.load(f)
+            else:
+                counters = {}
 
-    print(f"✅ Búsqueda completada. Resultados guardados en '{resultados_path}'")
+            counters["feliubadalo"] = añadidos
+
+            with open(counters_path, "w", encoding="utf-8") as f:
+                json.dump(counters, f, indent=4)
+
+            print("🔢 Contador actualizado correctamente")
+
+        except Exception as e:
+            print(f"⚠️ Error al guardar contador: {e}")
 
 if __name__ == "__main__":
-    ejecutar_scraping_feliubadalo()
+    ejecutar_carrito_feliubadalo()
