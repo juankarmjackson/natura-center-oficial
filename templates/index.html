@@ -123,7 +123,7 @@
 });
 
 
-    const tabla2Body = document.querySelector('#tabla2 tbody');
+const tabla2Body = document.querySelector('#tabla2 tbody');         // Feliu Badaló
 
 fileInput.addEventListener('change', async () => {
   const file = fileInput.files[0];
@@ -152,27 +152,27 @@ fileInput.addEventListener('change', async () => {
         const jsonStr = line.replace('data: ', '').trim();
         try {
           const producto = JSON.parse(jsonStr);
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${producto.codigo_barras}</td>
+            <td>${producto.nombre_producto}</td>
+            <td>${producto.disponibilidad}</td>
+            <td><a href="${producto.enlace}" target="_blank">🔗</a></td>
+          `;
 
-          // 🟢 Insertar solo los de Feliu Badaló en tabla2
           if (producto.web === "feliubadalo") {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${producto.codigo_barras}</td>
-              <td>${producto.nombre_producto}</td>
-              <td>${producto.disponibilidad}</td>
-              <td><a href="${producto.enlace}" target="_blank">🔗</a></td>
-            `;
             tabla2Body.appendChild(row);
+          } else if (producto.web === "dieteticavallecana") {
+            tabla1Body.appendChild(row);
           }
 
         } catch (err) {
-          console.error('❌ Error procesando JSON:', jsonStr);
+          console.error('❌ Error procesando JSON:', jsonStr, err);
         }
       }
     }
   }
 });
-
 
 
   </script>
