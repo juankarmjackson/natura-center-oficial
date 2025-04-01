@@ -1,14 +1,12 @@
-from flask import Flask, request, jsonify, render_template, Response
+from flask import Flask, request, jsonify, render_template
 import os
 import subprocess
-import threading
+import json
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-latest_csv_path = None
 
 @app.route('/')
 def index():
@@ -16,56 +14,39 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    global latest_csv_path
     file = request.files['file']
     if not file:
         return jsonify({"error": "No se proporcionó archivo"}), 400
 
+    # Guardar archivo
     filename = file.filename
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file.save(filepath)
-    latest_csv_path = filepath
 
-    return jsonify({"success": True})
+    # Ejecutar script1.py
+    subprocess.call(['python', 'scripts/script1.py', filepath])
 
-@app.route('/stream-script1')
-def stream_script1():
-    def generate():
-        process = subprocess.Popen(
-            ["python", "scripts/script1.py", latest_csv_path],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1
-        )
-        for line in process.stdout:
-            if line.strip().startswith("{"):  # JSON del producto
-                yield f"data: {line.strip()}\n\n"
-        process.stdout.close()
-        process.wait()
+    # Ejecutar script2.py
+    subprocess.call(['python', 'scripts/script2.py', filepath])
 
-    return Response(generate(), mimetype='text/event-stream')
+    # Leer resultados del script1
+    resultados1_path = os.path.join(UPLOAD_FOLDER, "resultados_dieteticavallecana.json")
+    resultados1 = []
+    if os.path.exists(resultados1_path):
+        with open(resultados1_path, encoding='utf-8') as f:
+            resultados1 = json.load(f)
 
-@app.route('/stream-script2')
-def stream_script2():
-    def generate():
-        try:
-            process = subprocess.Popen(
-                ["python", "scripts/script2.py"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
-            for line in process.stdout:
-                if line.strip().startswith("{"):
-                    yield f"data: {line.strip()}\n\n"
-            process.stdout.close()
-            process.wait()
-        except Exception as e:
-            yield f"data: {{\"error\": \"{str(e)}\"}}\n\n"
+    # Leer resultados del script2
+    resultados2_path = os.path.join(UPLOAD_FOLDER, "resultados_feliubadalo.csv")
+    resultados2 = []
+    if os.path.exists(resultados2_path):
+        df = pd.read_csv(resultados2_path)
+        resultados2 = df.to_dict(orient="records")
 
-    return Response(generate(), mimetype='text/event-stream')
+    return jsonify({
+        "script1": resultados1,
+        "script2": resultados2
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
