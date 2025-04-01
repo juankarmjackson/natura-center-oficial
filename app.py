@@ -13,20 +13,20 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def index():
     return render_template('index.html')
 
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     file = request.files['file']
     if not file:
         return "No se proporcionó archivo", 400
 
-    # 🧹 Eliminar todos los archivos CSV existentes antes de guardar el nuevo
+    # 🧹 Eliminar archivos anteriores
     for f in os.listdir(UPLOAD_FOLDER):
         if f.endswith(".csv"):
             os.remove(os.path.join(UPLOAD_FOLDER, f))
 
-    # ✅ Guardar el nuevo archivo
-    filename = "input.csv"
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    # 📦 Guardar como input.csv
+    filepath = os.path.join(UPLOAD_FOLDER, "input.csv")
     file.save(filepath)
 
     def generate():
@@ -43,14 +43,16 @@ def upload_file():
                 )
                 for line in iter(process.stdout.readline, ''):
                     if line.strip():
-                        # Agregar prefijo opcional por script si quieres
-                        output_queue.put(f"data: {line.strip()}\n\n")
+                        full_line = f"[{script_name}] {line.strip()}"
+                        print(full_line)  # 📋 Ver en consola de Railway
+                        output_queue.put(f"data: {line.strip()}\n\n")  # SSE al frontend
                 process.stdout.close()
                 process.wait()
             except Exception as e:
-                output_queue.put(f"data: Error ejecutando {script_name}: {str(e)}\n\n")
+                error_msg = f"❌ Error ejecutando {script_name}: {str(e)}"
+                print(error_msg)
+                output_queue.put(f"data: {error_msg}\n\n")
 
-        # Ejecutar scripts en paralelo (script1.py + script2.py)
         threads = []
         for script in ['scripts/script1.py', 'scripts/script2.py']:
             t = threading.Thread(target=run_script, args=(script,))
@@ -64,6 +66,7 @@ def upload_file():
                 continue
 
     return Response(generate(), mimetype='text/event-stream')
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
