@@ -97,6 +97,14 @@ def ejecutar_scraping_feliubadalo():
         print(f"❌ Error leyendo CSV: {e}")
         return
 
+    columnas = {c.lower(): c for c in df.columns}
+    col_codigo = next((v for k, v in columnas.items() if "código" in k and "barra" in k), None)
+    col_nombre = next((v for k, v in columnas.items() if "nombre" in k), None)
+
+    if not col_codigo or not col_nombre:
+        print("❌ No se encontraron columnas 'código de barras' y 'nombre'")
+        return
+
     print(f"📦 Total filas en CSV: {len(df)}")
 
     resultados = []
@@ -108,8 +116,8 @@ def ejecutar_scraping_feliubadalo():
 
         for index, row in df.iterrows():
             row_id = index + 2
-            codigo = str(row.get("Código de Barras", "")).strip()
-            nombre = str(row.get("Nombre del Producto", "")).strip()
+            codigo = str(row.get(col_codigo, "")).strip()
+            nombre = str(row.get(col_nombre, "")).strip()
 
             if not codigo or not nombre:
                 print(f"⏩ Fila {row_id} omitida: código o nombre faltante")
