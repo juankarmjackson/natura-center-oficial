@@ -30,7 +30,7 @@ def crear_driver(user_agent=None):
     return webdriver.Chrome(options=options)
 
 def login(driver):
-    print("🔐 Iniciando sesión en Feliu Badaló...")
+    print("\n🔐 Iniciando sesión en Feliu Badaló...")
     driver.get("https://online.feliubadalo.com/customer/account/login/")
 
     try:
@@ -53,7 +53,7 @@ def login(driver):
 
 def buscar_producto(driver, row_id, codigo_barras, nombre_producto):
     url = f"https://online.feliubadalo.com/catalogsearch/result/?q={codigo_barras}#/dfclassic/query={codigo_barras}"
-    print(f"🔍 Buscando: {nombre_producto} ({codigo_barras})")
+    print(f"🔍 Buscando fila {row_id}: {nombre_producto} ({codigo_barras})")
 
     try:
         driver.get(url)
@@ -66,7 +66,7 @@ def buscar_producto(driver, row_id, codigo_barras, nombre_producto):
         else:
             disponibilidad = "No disponible"
 
-        print(f"✅ {disponibilidad}")
+        print(f"✅ {disponibilidad} - {nombre_producto}")
         return {
             "row_id": row_id,
             "codigo_barras": codigo_barras,
@@ -97,6 +97,8 @@ def ejecutar_scraping_feliubadalo():
         print(f"❌ Error leyendo CSV: {e}")
         return
 
+    print(f"📦 Total filas en CSV: {len(df)}")
+
     resultados = []
     user_agent = random.choice(USER_AGENTS)
     driver = crear_driver(user_agent)
@@ -110,6 +112,7 @@ def ejecutar_scraping_feliubadalo():
             nombre = str(row.get("Nombre del Producto", "")).strip()
 
             if not codigo or not nombre:
+                print(f"⏩ Fila {row_id} omitida: código o nombre faltante")
                 continue
 
             if index > 0 and index % 50 == 0:
