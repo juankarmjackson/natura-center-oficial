@@ -39,11 +39,16 @@ def upload_file():
                 )
                 for line in iter(process.stdout.readline, ''):
                     if line.strip():
+                        # Mostrar en consola del servidor (Railway)
+                        print(f"[{script_name}] {line.strip()}")
+                        # Enviar al frontend vía SSE
                         output_queue.put(f"data: {line.strip()}\n\n")
                 process.stdout.close()
                 process.wait()
             except Exception as e:
-                output_queue.put(f"data: Error ejecutando {script_name}: {str(e)}\n\n")
+                error_msg = f"❌ Error ejecutando {script_name}: {str(e)}"
+                print(error_msg)
+                output_queue.put(f"data: {error_msg}\n\n")
 
         # Ejecutar ambos scripts en paralelo
         threads = []
@@ -52,7 +57,7 @@ def upload_file():
             t.start()
             threads.append(t)
 
-        # Escuchar los mensajes que los hilos vayan generando
+        # Emitir líneas a medida que se producen
         while any(t.is_alive() for t in threads) or not output_queue.empty():
             try:
                 yield output_queue.get(timeout=0.5)
