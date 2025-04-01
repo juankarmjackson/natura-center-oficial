@@ -1,6 +1,8 @@
 from flask import Flask, request, render_template, Response
 import os
 import subprocess
+import threading
+import queue
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
@@ -24,20 +26,38 @@ def upload_file():
     file.save(filepath)
 
     def generate():
-        # Ejecutar script1.py y luego script2.py
+        output_queue = queue.Queue()
+
+        def run_script(script_name):
+            try:
+                process = subprocess.Popen(
+                    ['python', script_name, filepath],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                    bufsize=1
+                )
+                for line in iter(process.stdout.readline, ''):
+                    if line.strip():
+                        output_queue.put(f"data: {line.strip()}\n\n")
+                process.stdout.close()
+                process.wait()
+            except Exception as e:
+                output_queue.put(f"data: Error ejecutando {script_name}: {str(e)}\n\n")
+
+        # Ejecutar ambos scripts en paralelo
+        threads = []
         for script in ['scripts/script1.py', 'scripts/script2.py']:
-            process = subprocess.Popen(
-                ['python', script, filepath],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                bufsize=1
-            )
-            for line in iter(process.stdout.readline, ''):
-                if line.strip():
-                    yield f"data: {line.strip()}\n\n"
-            process.stdout.close()
-            process.wait()
+            t = threading.Thread(target=run_script, args=(script,))
+            t.start()
+            threads.append(t)
+
+        # Escuchar los mensajes que los hilos vayan generando
+        while any(t.is_alive() for t in threads) or not output_queue.empty():
+            try:
+                yield output_queue.get(timeout=0.5)
+            except queue.Empty:
+                continue
 
     return Response(generate(), mimetype='text/event-stream')
 
