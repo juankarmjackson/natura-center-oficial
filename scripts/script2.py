@@ -51,9 +51,17 @@ def buscar_producto(driver, row_id, codigo_barras, nombre_producto):
             "disponibilidad": disponibilidad,
             "web": "feliubadalo"
         }
-    except WebDriverException as e:
-        print(f"❌ Error con Selenium en {codigo_barras}: {e}")
-        return None
+
+    except Exception as e:
+        print(f"❌ Error procesando {codigo_barras}: {str(e)}", flush=True)
+        return {
+            "row_id": row_id,
+            "codigo_barras": codigo_barras,
+            "nombre_producto": nombre_producto,
+            "enlace": url,
+            "disponibilidad": "Error",
+            "web": "feliubadalo"
+        }
 
 def ejecutar_scraping_feliubadalo():
     print("🚀 Ejecutando scraping en Feliu Badaló...")
@@ -86,7 +94,6 @@ def ejecutar_scraping_feliubadalo():
             if not codigo or not nombre:
                 continue
 
-            # Reiniciar driver cada 50 productos
             if index > 0 and index % 50 == 0:
                 driver.quit()
                 user_agent = random.choice(USER_AGENTS)
@@ -94,17 +101,19 @@ def ejecutar_scraping_feliubadalo():
                 time.sleep(2)
                 driver = crear_driver(user_agent)
 
-            resultado = buscar_producto(driver, row_id, codigo, nombre)
-            if resultado:
-                resultados.append(resultado)
-                print(json.dumps(resultado), flush=True)
+            try:
+                resultado = buscar_producto(driver, row_id, codigo, nombre)
+                if resultado:
+                    resultados.append(resultado)
+                    print(json.dumps(resultado), flush=True)
+            except Exception as e:
+                print(f"❌ Error general en fila {row_id}: {e}", flush=True)
 
             time.sleep(4)
 
     finally:
         driver.quit()
 
-    # Guardar resultados
     resultados_path = os.path.join(UPLOAD_FOLDER, "resultados_feliubadalo.json")
     with open(resultados_path, "w", encoding="utf-8") as f:
         json.dump(resultados, f, indent=2, ensure_ascii=False)
